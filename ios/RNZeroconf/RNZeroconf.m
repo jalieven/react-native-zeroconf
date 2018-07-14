@@ -33,6 +33,16 @@ RCT_EXPORT_METHOD(stop)
     [self.resolvingServices removeAllObjects];
 }
 
+RCT_EXPORT_METHOD(register:(NSString *)name type:(NSString *)type port:(NSInteger *)port)
+{
+
+}
+
+RCT_EXPORT_METHOD(unregister)
+{
+
+}
+
 + (BOOL)requiresMainQueueSetup
 {
     return YES;
