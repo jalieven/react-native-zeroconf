@@ -43,6 +43,9 @@ Allow you to clean the listeners, avoiding potential memory leaks ([#33](https:/
 
 If you cleaned the listeners and need to get them back on.
 
+###### `register(name, type, port)` Register your service
+###### `unregister()` Unregister your service
+
 ##### Events
 
 ```javascript
@@ -78,3 +81,6 @@ Broadcast a service name removed from the network.
 
 ###### `update` Triggered either when a service is found or removed
 ###### `error` Triggered when an error occurs
+
+###### `registered` Triggered when your local service is successfully registered
+###### `unregistered` Triggered when your local service is successfully unregistered

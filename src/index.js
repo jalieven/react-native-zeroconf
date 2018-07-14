@@ -27,6 +27,25 @@ export default class Zeroconf extends EventEmitter {
     this._dListeners.stop = DeviceEventEmitter.addListener('RNZeroconfStop', () => this.emit('stop'))
     this._dListeners.error = DeviceEventEmitter.addListener('RNZeroconfError', err => this.emit('error', err))
 
+    this._dListeners.registerError = DeviceEventEmitter.addListener('RNZeroconfRegisterError', service => {
+      this.emit('error', service.error)
+    })
+
+    this._dListeners.unregisterError = DeviceEventEmitter.addListener('RNZeroconfUnregisterError', service => {
+      if (!service || !service.name) { return }
+      this.emit('error', service.error)
+    })
+
+    this._dListeners.registered = DeviceEventEmitter.addListener('RNZeroconfRegistered', service => {
+      if (!service || !service.name) { return }
+      this.emit('registered', service)
+    })
+
+    this._dListeners.unregistered = DeviceEventEmitter.addListener('RNZeroconfUnregistered', service => {
+      if (!service || !service.name) { return }
+      this.emit('unregistered', service)
+    })
+
     this._dListeners.found = DeviceEventEmitter.addListener('RNZeroconfFound', service => {
       if (!service || !service.name) { return }
       const { name } = service
@@ -86,6 +105,14 @@ export default class Zeroconf extends EventEmitter {
    */
   stop () {
     RNZeroconf.stop()
+  }
+
+  register(name, type, port) {
+    RNZeroconf.register(name, type, parseInt(port, 10));
+  }
+
+  unregister() {
+    RNZeroconf.unregister();
   }
 
 }

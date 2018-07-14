@@ -33,15 +33,22 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
     public static final String EVENT_REMOVE = "RNZeroconfRemove";
     public static final String EVENT_RESOLVE = "RNZeroconfResolved";
 
+    public static final String EVENT_REGISTERED = "RNZeroconfRegistered";
+    public static final String EVENT_UNREGISTERED = "RNZeroconfUnregistered";
+    public static final String EVENT_REGISTER_ERROR = "RNZeroconfRegisterError";
+    public static final String EVENT_UNREGISTER_ERROR = "RNZeroconfUnregisterError";
+
     public static final String KEY_SERVICE_NAME = "name";
     public static final String KEY_SERVICE_FULL_NAME = "fullName";
     public static final String KEY_SERVICE_HOST = "host";
     public static final String KEY_SERVICE_PORT = "port";
     public static final String KEY_SERVICE_ADDRESSES = "addresses";
     public static final String KEY_SERVICE_TXT = "txt";
+    public static final String KEY_SERVICE_ERROR = "error";
 
     protected NsdManager mNsdManager;
     protected NsdManager.DiscoveryListener mDiscoveryListener;
+    protected NsdManager.RegistrationListener mRegistrationListener;
 
     public ZeroconfModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -112,6 +119,64 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
         mDiscoveryListener = null;
     }
 
+    @ReactMethod
+    public void register(String name, String type, Integer port) {
+        if (mNsdManager == null) {
+            mNsdManager = (NsdManager) getReactApplicationContext().getSystemService(Context.NSD_SERVICE);
+        }
+        mRegistrationListener = new NsdManager.RegistrationListener() {
+            @Override
+            public void onRegistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                String error = "Registration failed with code: " + errorCode;
+                WritableMap service = new WritableNativeMap();
+                service.putString(KEY_SERVICE_NAME, serviceInfo.getServiceName());
+                service.putString(KEY_SERVICE_ERROR, error);
+                sendEvent(getReactApplicationContext(), EVENT_REGISTER_ERROR, service);
+            }
+
+            @Override
+            public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                String error = "Unregistration failed with code: " + errorCode;
+                WritableMap service = new WritableNativeMap();
+                service.putString(KEY_SERVICE_NAME, serviceInfo.getServiceName());
+                service.putString(KEY_SERVICE_ERROR, error);
+                sendEvent(getReactApplicationContext(), EVENT_UNREGISTER_ERROR, service);
+            }
+
+            @Override
+            public void onServiceRegistered(NsdServiceInfo serviceInfo) {
+                WritableMap service = new WritableNativeMap();
+                service.putString(KEY_SERVICE_NAME, serviceInfo.getServiceName());
+                sendEvent(getReactApplicationContext(), EVENT_REGISTERED, service);
+            }
+
+            @Override
+            public void onServiceUnregistered(NsdServiceInfo serviceInfo) {
+                WritableMap service = new WritableNativeMap();
+                service.putString(KEY_SERVICE_NAME, serviceInfo.getServiceName());
+                sendEvent(getReactApplicationContext(), EVENT_UNREGISTERED, service);
+            }
+        };
+        NsdServiceInfo serviceInfo = new NsdServiceInfo();
+        serviceInfo.setServiceType(type);
+        serviceInfo.setServiceName(name);
+        serviceInfo.setPort(port);
+        mNsdManager.registerService(
+                serviceInfo,
+                NsdManager.PROTOCOL_DNS_SD,
+                mRegistrationListener
+        );
+    }
+
+    public void unregister() {
+        if (mNsdManager == null) {
+            mNsdManager = (NsdManager) getReactApplicationContext().getSystemService(Context.NSD_SERVICE);
+        }
+        if (mRegistrationListener != null) {
+            mNsdManager.unregisterService(mRegistrationListener);
+        }
+    }
+
     protected void sendEvent(ReactContext reactContext,
                              String eventName,
                              @Nullable Object params) {
@@ -145,7 +210,7 @@ public class ZeroconfModule extends ReactContextBaseJavaModule {
             for (String key : attributes.keySet()) {
               try {
                 byte[] recordValue = attributes.get(key);
-                txtRecords.putString(String.format(Locale.getDefault(), "%s", key), String.format(Locale.getDefault(), "%s", recordValue != null ? new String(recordValue, "UTF_8") : ""));
+                txtRecords.putString(String.format(Locale.getDefault(), "%s", key), String.format(Locale.getDefault(), "%s", recordValue != null ? new String(recordValue, "UTF-8") : ""));
               } catch (UnsupportedEncodingException e) {
                 String error = "Failed to encode txtRecord: " + e;
                 sendEvent(getReactApplicationContext(), EVENT_ERROR, error);
